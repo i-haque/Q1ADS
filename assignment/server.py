@@ -1,8 +1,11 @@
 import socket
-from process import process_file
+import db
 
 
 def run_server():
+    # connect to Redis Cache
+    r = db.RedisConnection()
+
     # create a TCP/IP socket
     # AF_INET -> denotes we are using IPv4
     # SOCK_STREAM -> denotes TCP connection
@@ -17,7 +20,7 @@ def run_server():
     server_socket.bind(('localhost', 8000))
 
     # get the hashmap
-    freq = process_file()
+    # freq = process_file()
 
     # listening for incoming requests
     server_socket.listen(1)
@@ -35,7 +38,7 @@ def run_server():
                     f'data recieved: {key}')
 
                 # sending response
-                word_count = freq[key]
+                word_count = r.get_freq(key)
                 response = word_count.to_bytes(4, byteorder='big')
 
             client_socket.sendall(response)
@@ -45,6 +48,7 @@ def run_server():
         print("\nShutting down server.")
 
     finally:
+        r.close_connection()
         server_socket.close()
 
 
