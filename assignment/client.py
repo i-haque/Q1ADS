@@ -1,14 +1,55 @@
 import socket
+import asyncio
+import time
+import random
 
-# create a socket and connect it to the address
-client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client_socket.connect(('localhost', 8000))
+SERVER_ADDR = '127.0.0.1'
+SERVER_PORT = 8000
+WORDS = ['all', 'one', 'maverick', 'phoenix', 'bob', 'omaha',
+         'rooster', 'hangman', 'fanboy', 'captain', 'iceman']
 
-# send request
-client_socket.sendall(b'one')
 
-# recieve response
-response = client_socket.recv(4)
-print(f'response from server: {int.from_bytes(response, byteorder='big')}')
+async def send_request():
+    try:
+        loop = asyncio.get_running_loop()
 
-client_socket.close()
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client_socket.setblocking(False)
+
+        await loop.sock_connect(client_socket, (SERVER_ADDR, SERVER_PORT))
+
+        word = random.choice(WORDS)
+        await loop.sock_sendall(client_socket, word.encode('utf-8'))
+
+        data = await loop.sock_recv(client_socket, 4)
+
+        freq = int.from_bytes(data, byteorder='big')
+        return (word, freq)
+
+    finally:
+        client_socket.close()
+
+
+async def main_client():
+    start_time = time.perf_counter()
+
+    tasks = [
+        asyncio.create_task(
+            send_request()
+        )
+        for _ in range(10)
+    ]
+
+    results = await asyncio.gather(*tasks)
+    for (word, freq) in results:
+        print(f'({word}, {freq})')
+
+    end_time = time.perf_counter()
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main_client())
+    except:
+        pass
+    finally:
+        pass

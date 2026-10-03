@@ -16,3 +16,7 @@ def init_redis_cache():
 
     finally:
         r.close()
+
+
+if __name__ == "__main__":
+    init_redis_cache()
