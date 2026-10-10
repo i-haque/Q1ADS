@@ -31,7 +31,7 @@ async def send_request():
 
 
 async def main_client():
-    start_time = time.perf_counter()
+    # start_time = time.perf_counter()
 
     tasks = [
         asyncio.create_task(
@@ -44,7 +44,7 @@ async def main_client():
     for (word, freq) in results:
         print(f'({word}, {freq})')
 
-    end_time = time.perf_counter()
+    # end_time = time.perf_counter()
 
 if __name__ == "__main__":
     try:

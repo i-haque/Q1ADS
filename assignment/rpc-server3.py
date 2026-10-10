@@ -4,7 +4,7 @@ from rpyc.utils.server import ThreadedServer
 import db
 
 HOST = '127.0.0.1'
-PORT = 8000
+PORT = 8003
 
 
 class WordFrequencyService(rpyc.Service):

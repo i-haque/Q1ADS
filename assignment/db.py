@@ -6,7 +6,7 @@ class RedisConnection:
         try:
             pool = redis.ConnectionPool(host='localhost', port=6379, db=0)
             self.r = redis.Redis(connection_pool=pool)
-            print(f'testing redis connection: {self.r.ping()}')
+            # print(f'testing redis connection: {self.r.ping()}')
         except Exception as e:
             print(f'could not connect to redis: {e}!!!')
 
