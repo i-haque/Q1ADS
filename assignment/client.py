@@ -9,7 +9,7 @@ WORDS = ['all', 'one', 'maverick', 'phoenix', 'bob', 'omaha',
          'rooster', 'hangman', 'fanboy', 'captain', 'iceman']
 
 
-async def send_request():
+async def handle_request():
     try:
         loop = asyncio.get_running_loop()
 
@@ -31,11 +31,11 @@ async def send_request():
 
 
 async def main_client():
-    # start_time = time.perf_counter()
+    start_time = time.perf_counter()
 
     tasks = [
         asyncio.create_task(
-            send_request()
+            handle_request()
         )
         for _ in range(10)
     ]
@@ -44,7 +44,9 @@ async def main_client():
     for (word, freq) in results:
         print(f'({word}, {freq})')
 
-    # end_time = time.perf_counter()
+    end_time = time.perf_counter()
+
+    print(f'Total time taken: {(end_time - start_time) * 1000:.2f}ms')
 
 if __name__ == "__main__":
     try:
