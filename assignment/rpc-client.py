@@ -1,74 +1,94 @@
-import rpyc
-import time
-import random
 
-SERVER_HOST = "127.0.0.1"
-SERVER_PORT = 8000
+import asyncio
+import random
+import time
+import rpyc
+
+LB_HOST = "127.0.0.1"
+LB_PORT = 8000
 
 REQUEST_RATES = [10, 30, 50, 70, 90]
 DURATION = 10
 
-WORDS = ['all', 'one', 'maverick', 'phoenix', 'bob', 'omaha',
-         'rooster', 'hangman', 'fanboy', 'captain', 'iceman']
+WORDS = [
+    "Maverick", "Rooster", "Hangman", "Phoenix", "Bob",
+    "Payback", "Fanboy", "Coyote", "Iceman", "Cyclone",
+    "Warlock", "Hondo", "Hammer", "Fritz", "Yale",
+    "Omaha", "Goose", "Penny", "Amelia", "Tomcat",
+    "Superhornet", "Darkstar", "Dagger", "Bandit", "Harddeck",
+    "Dogfight", "Mach", "Centrifuge", "Harddeck", "Ejection",
+    "Afterburner", "Radar", "Pitch", "Yaw", "Roll", "Aviator",
+    "Wingman", "Carrier", "Tarmac", "Hangar", "Miramar",
+    "Northisland", "Sammys", "Canyon", "Uranium", "Bunker",
+    "Intercept", "Vector", "Altitude", "Thrust"
+]
 
 
-def run_workload(conn, rate):
+def rpc_call(word):
+    conn = rpyc.connect(
+        LB_HOST,
+        LB_PORT,
+        config={"sync_request_timeout": 5}
+    )
 
+    try:
+        return conn.root.get_word_frequency(word)
+    finally:
+        conn.close()
+
+
+async def run_workload(rate):
     interval = 1.0 / rate
     start = time.perf_counter()
     next_request = start
 
-    total_latency = 0
+    total_latency = 0.0
     requests_sent = 0
 
     while time.perf_counter() - start < DURATION:
-
         now = time.perf_counter()
 
         if now < next_request:
-            time.sleep(next_request - now)
+            await asyncio.sleep(next_request - now)
 
         word = random.choice(WORDS)
+        request_start = time.perf_counter()
 
-        req_start_time = time.perf_counter()
+        try:
+            count = await asyncio.to_thread(rpc_call, word)
+            print(f"{word}: {count}")
 
-        count = conn.root.get_word_frequency(word)
-        print(f'{word}: {count}')
+        except Exception as exc:
+            print(f"Request failed for {word}: {exc}")
 
-        req_end_time = time.perf_counter()
-        total_latency += (req_end_time - req_start_time) * 1000
-
+        request_end = time.perf_counter()
+        total_latency += (request_end - request_start) * 1000
         requests_sent += 1
+
         next_request += interval
 
     elapsed = time.perf_counter() - start
 
-    print(f"Target rate: {rate} requests/sec")
+    print(f"\nTarget rate: {rate} requests/sec")
     print(f"Requests sent: {requests_sent}")
     print(f"Actual rate: {requests_sent / elapsed:.2f} requests/sec")
-    print(f'Avg Latency: {total_latency / requests_sent:.3f} ms')
+
+    if requests_sent:
+        print(f"Avg latency: {total_latency / requests_sent:.3f} ms")
+
     print("-----------------------------")
 
 
-def client():
+async def main():
+    for rate in REQUEST_RATES:
+        print(f"\nStarting workload: {rate} requests/sec")
 
-    connection = rpyc.connect(SERVER_HOST, SERVER_PORT)
-
-    try:
-        for rate in REQUEST_RATES:
-
-            print(f"\nStarting workload: {rate} requests/sec")
-
-            run_workload(connection, rate)
-
-            time.sleep(3)
-
-    finally:
-        connection.close()
+        await run_workload(rate)
+        await asyncio.sleep(3)
 
 
 if __name__ == "__main__":
     try:
-        client()
+        asyncio.run(main())
     except KeyboardInterrupt:
         pass

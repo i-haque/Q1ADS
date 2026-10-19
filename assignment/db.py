@@ -4,18 +4,27 @@ import redis
 class RedisConnection:
     def __init__(self):
         try:
-            pool = redis.ConnectionPool(host='localhost', port=6379, db=0)
+            # 1. Added decode_responses=True to handle strings automatically
+            pool = redis.ConnectionPool(
+                host='localhost', port=6379, db=0, decode_responses=True)
             self.r = redis.Redis(connection_pool=pool)
-            # print(f'testing redis connection: {self.r.ping()}')
-        except Exception as e:
-            print(f'could not connect to redis: {e}!!!')
 
-    def get_freq(self, key: str) -> int:
+            # 2. Ping the server immediately to actually verify the connection works
+            self.r.ping()
+        except redis.ConnectionError as e:
+            print(f'Could not connect to Redis server: {e}!!!')
+            self.r = None
+
+    def get(self, key: str) -> int:
         val = self.r.get(key)
-        if val is None:
-            return 0
-
+        if val == None:
+            return -1
+        # 3. Convert the stored string ("260") safely into an actual integer
         return int(val)
 
+    def set(self, key: str, val: int) -> bool:
+        return self.r.set(key, str(val))
+
     def close_connection(self):
-        self.r.close()
+        if self.r:
+            self.r.close()
